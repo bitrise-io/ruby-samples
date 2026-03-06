@@ -1,8 +1,12 @@
 require 'rails_helper'
 
 RSpec.describe 'Users API', type: :request do
+  include ActiveJob::TestHelper
+
   let!(:users) { create_list(:user, 3) }
   let(:user)   { users.first }
+
+  before { Rails.cache.clear }
 
   describe 'GET /users' do
     before { get '/users' }
@@ -13,6 +17,15 @@ RSpec.describe 'Users API', type: :request do
 
     it 'returns all users' do
       expect(JSON.parse(response.body).size).to eq(3)
+    end
+
+    it 'caches the result' do
+      expect(Rails.cache.exist?(UsersController::USERS_CACHE_KEY)).to be true
+    end
+
+    it 'serves subsequent requests from cache without hitting the database' do
+      expect(User).not_to receive(:all)
+      get '/users'
     end
   end
 
@@ -55,6 +68,20 @@ RSpec.describe 'Users API', type: :request do
         expect(response).to have_http_status(:created)
         expect(JSON.parse(response.body)['email']).to eq('alice@example.com')
       end
+
+      it 'enqueues a WelcomeUserJob' do
+        expect {
+          post '/users', params: valid_params, as: :json
+        }.to have_enqueued_job(WelcomeUserJob)
+      end
+
+      it 'invalidates the users cache' do
+        get '/users' # populate cache
+        expect(Rails.cache.exist?(UsersController::USERS_CACHE_KEY)).to be true
+
+        post '/users', params: valid_params, as: :json
+        expect(Rails.cache.exist?(UsersController::USERS_CACHE_KEY)).to be false
+      end
     end
 
     context 'with invalid parameters' do
@@ -81,6 +108,12 @@ RSpec.describe 'Users API', type: :request do
 
       it 'updates the user' do
         expect(JSON.parse(response.body)['name']).to eq('Updated Name')
+      end
+
+      it 'invalidates the users cache' do
+        get '/users' # populate cache
+        patch "/users/#{user.id}", params: { user: { name: 'New Name' } }, as: :json
+        expect(Rails.cache.exist?(UsersController::USERS_CACHE_KEY)).to be false
       end
     end
 
@@ -109,6 +142,12 @@ RSpec.describe 'Users API', type: :request do
         }.to change(User, :count).by(-1)
 
         expect(response).to have_http_status(:no_content)
+      end
+
+      it 'invalidates the users cache' do
+        get '/users' # populate cache
+        delete "/users/#{user.id}"
+        expect(Rails.cache.exist?(UsersController::USERS_CACHE_KEY)).to be false
       end
     end
 

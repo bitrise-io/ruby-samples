@@ -1,0 +1,80 @@
+format_version: "25"
+default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
+project_type: ruby
+containers:
+  postgres:
+    type: service
+    image: postgres:17
+    ports:
+      - 5432:5432
+    envs:
+      - POSTGRES_PASSWORD: $DB_PASSWORD
+    options: --health-cmd "pg_isready" --health-interval 10s --health-timeout 5s --health-retries
+      5
+  redis:
+    type: service
+    image: redis:7
+    ports:
+      - 6379:6379
+    options: --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries
+      5
+app:
+  envs:
+    - DB_HOST: postgres
+    - DB_USERNAME: postgres
+    - DB_PASSWORD: password
+    - REDIS_URL: redis://redis:6379/0
+workflows:
+  run_tests:
+    steps:
+      - activate-ssh-key: {}
+      - git-clone: {}
+      - script:
+          title: Install Ruby
+          inputs:
+            - content: |
+                #!/usr/bin/env bash
+                set -euxo pipefail
+                
+                # Bitrise stacks come with asdf pre-installed to help auto-switch between various software versions
+                # asdf looks for the Ruby version in these files: .tool-versions, .ruby-version
+                # See: https://github.com/asdf-vm/asdf-ruby
+                asdf install ruby
+      - restore-cache:
+          inputs:
+            - key: gem-{{ checksum "Gemfile.lock" }}
+      - script:
+          title: Install dependencies
+          inputs:
+            - content: |
+                #!/usr/bin/env bash
+                set -euxo pipefail
+                
+                bundle config set --local path vendor/bundle
+                bundle install
+      - script:
+          title: Database setup
+          inputs:
+            - content: |-
+                #!/usr/bin/env bash
+                set -euxo pipefail
+                
+                bundle exec rake db:create db:schema:load
+          service_containers:
+            - postgres
+      - script:
+          title: Run tests
+          inputs:
+            - content: |-
+                #!/usr/bin/env bash
+                set -euxo pipefail
+
+                bundle exec rspec
+          service_containers:
+            - postgres
+            - redis
+      - save-cache:
+          inputs:
+            - key: gem-{{ checksum "Gemfile.lock" }}
+            - paths: vendor/bundle
+      - deploy-to-bitrise-io: {}

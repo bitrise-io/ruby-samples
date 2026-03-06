@@ -1,8 +1,11 @@
 class UsersController < ApplicationController
   before_action :set_user, only: %i[show update destroy]
 
+  USERS_CACHE_KEY = "users/all"
+
   def index
-    render json: User.all
+    users = Rails.cache.fetch(USERS_CACHE_KEY, expires_in: 1.hour) { User.all.to_a }
+    render json: users
   end
 
   def show
@@ -12,6 +15,7 @@ class UsersController < ApplicationController
   def create
     user = User.new(user_params)
     if user.save
+      WelcomeUserJob.perform_later(user)
       render json: user, status: :created
     else
       render json: { errors: user.errors.full_messages }, status: :unprocessable_entity
