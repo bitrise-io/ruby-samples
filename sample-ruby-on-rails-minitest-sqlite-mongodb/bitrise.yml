@@ -1,0 +1,61 @@
+format_version: "25"
+default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
+project_type: ruby
+containers:
+  mongodb:
+    type: service
+    image: mongo:8
+    ports:
+      - 27017:27017
+    options: --health-cmd "mongosh --eval 'db.runCommand({ ping: 1 })'" --health-interval 10s --health-timeout 5s --health-retries 5
+app:
+  envs:
+    - MONGODB_URL: mongodb://mongodb:27017/sample_ruby_on_rails_minitest_sqlite_mongodb_test
+workflows:
+  run_tests:
+    steps:
+      - activate-ssh-key: {}
+      - git-clone: {}
+      - script:
+          title: Install Ruby
+          inputs:
+            - content: |
+                #!/usr/bin/env bash
+                set -euxo pipefail
+
+                asdf install ruby
+      - restore-cache:
+          inputs:
+            - key: gem-{{ checksum "Gemfile.lock" }}
+      - script:
+          title: Install dependencies
+          inputs:
+            - content: |
+                #!/usr/bin/env bash
+                set -euxo pipefail
+
+                bundle config set --local path vendor/bundle
+                bundle install
+      - script:
+          title: Database setup
+          inputs:
+            - content: |-
+                #!/usr/bin/env bash
+                set -euxo pipefail
+
+                bundle exec rails db:create db:migrate
+      - script:
+          title: Run tests
+          inputs:
+            - content: |-
+                #!/usr/bin/env bash
+                set -euxo pipefail
+
+                bundle exec rails test
+          service_containers:
+            - mongodb
+      - save-cache:
+          inputs:
+            - key: gem-{{ checksum "Gemfile.lock" }}
+            - paths: vendor/bundle
+      - deploy-to-bitrise-io: {}
