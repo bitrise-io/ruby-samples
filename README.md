@@ -7,6 +7,7 @@ This repository contains Ruby on Rails sample projects covering typical combinat
 | Directory | Testing | Relational DB | Non-relational DB |
 |-----------|---------|---------------|-------------------|
 | [sample-ruby-on-rails-rspec-postgres-redis](sample-ruby-on-rails-rspec-postgres-redis/) | RSpec | PostgreSQL | Redis |
+| [sample-ruby-on-rails-rspec-mysql-redis](sample-ruby-on-rails-rspec-mysql-redis/) | RSpec | MySQL | Redis |
 | [sample-ruby-on-rails-minitest-sqlite-mongodb](sample-ruby-on-rails-minitest-sqlite-mongodb/) | Minitest | SQLite | MongoDB |
 
 ---
@@ -23,13 +24,35 @@ This repository contains Ruby on Rails sample projects covering typical combinat
 
 **How to run:**
 ```bash
-cd sample-ruby-on-rails-rspec-postgres
+cd sample-ruby-on-rails-rspec-postgres-redis
 bundle install
 bundle exec rake db:create db:schema:load RAILS_ENV=test
 bundle exec rspec
 ```
 
 > Requires PostgreSQL and Redis running locally (or via Docker).
+
+---
+
+### sample-ruby-on-rails-rspec-mysql-redis
+
+**Stack:** RSpec · FactoryBot · MySQL · Redis · Sidekiq
+
+**What it demonstrates:**
+- REST API with full CRUD and validation testing
+- Model and request specs with RSpec, FactoryBot, Faker, Shoulda-matchers
+- Background job processing with Sidekiq (backed by Redis)
+- Redis-backed caching
+
+**How to run:**
+```bash
+cd sample-ruby-on-rails-rspec-mysql-redis
+bundle install
+DB_PASSWORD=<your-mysql-root-password> bundle exec rake db:create db:schema:load RAILS_ENV=test
+DB_PASSWORD=<your-mysql-root-password> bundle exec rspec
+```
+
+> Requires MySQL and Redis running locally (or via Docker).
 
 ---
 
