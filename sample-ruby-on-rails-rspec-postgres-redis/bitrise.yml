@@ -1,4 +1,4 @@
-format_version: "25"
+format_version: "26"
 default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 project_type: ruby
 containers:
@@ -59,7 +59,7 @@ workflows:
                 #!/usr/bin/env bash
                 set -euxo pipefail
                 
-                bundle exec rake db:create db:schema:load
+                bundle exec rails db:create db:schema:load
           service_containers:
             - postgres
       - script:

@@ -1,4 +1,4 @@
-format_version: "25"
+format_version: "26"
 default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 project_type: ruby
 containers:
@@ -7,7 +7,7 @@ containers:
     image: mongo:8
     ports:
       - 27017:27017
-    options: --health-cmd "mongosh --eval 'db.runCommand({ ping: 1 })'" --health-interval 10s --health-timeout 5s --health-retries 5
+    options: --health-cmd "mongosh --eval 'db.runCommand({ping:1})'" --health-interval 10s --health-timeout 5s --health-retries 5
 app:
   envs:
     - MONGODB_URL: mongodb://mongodb:27017/sample_ruby_on_rails_minitest_sqlite_mongodb_test
@@ -43,7 +43,7 @@ workflows:
                 #!/usr/bin/env bash
                 set -euxo pipefail
 
-                bundle exec rails db:create db:migrate
+                bundle exec rails db:create db:schema:load
       - script:
           title: Run tests
           inputs:

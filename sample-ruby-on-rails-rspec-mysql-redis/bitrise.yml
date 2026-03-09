@@ -1,4 +1,4 @@
-format_version: "25"
+format_version: "26"
 default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 project_type: ruby
 containers:
@@ -9,7 +9,6 @@ containers:
       - 3306:3306
     envs:
       - MYSQL_ROOT_PASSWORD: $DB_PASSWORD
-      - MYSQL_DATABASE: sample_ruby_on_rails_rspec_mysql_redis_test
     options: --health-cmd "mysqladmin ping -h 127.0.0.1 -u root --password=$$MYSQL_ROOT_PASSWORD" --health-interval 10s --health-timeout 5s --health-retries 5
   redis:
     type: service
@@ -55,7 +54,7 @@ workflows:
                 #!/usr/bin/env bash
                 set -euxo pipefail
 
-                bundle exec rake db:create db:schema:load
+                bundle exec rails db:create db:schema:load
           service_containers:
             - mysql
       - script:
